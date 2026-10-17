@@ -1,0 +1,41 @@
+# Runtime school data and biometric media
+backend/data/
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+
+# Secrets and machine-specific configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Dependencies, builds, and model downloads
+venv/
+.venv/
+node_modules/
+dist/
+build/
+.insightface/
+*.onnx
+*.pkl
+
+# Python and tooling caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+*.log
+
+# Operating system and editor files
+.DS_Store
+.idea/
+.vscode/
+
+# Unrelated local exercises
+lap files/

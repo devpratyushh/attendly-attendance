@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "dataset_id": "replace-with-your-labeled-classroom-set",
+  "enrollment": [
+    {
+      "student_id": "STU001",
+      "capture_group": "enrollment-day-1",
+      "photos": ["enrollment/STU001/front.jpg", "enrollment/STU001/left.jpg", "enrollment/STU001/right.jpg"]
+    }
+  ],
+  "images": [
+    {
+      "path": "classroom/calibration-day-2-view-1.jpg",
+      "split": "calibration",
+      "capture_group": "day-2",
+      "session_id": "lecture-day-2",
+      "conditions": ["daylight", "front-row"],
+      "roster": ["STU001"],
+      "faces": [{"bbox": [100, 100, 220, 250], "student_id": "STU001"}, {"bbox": [300, 100, 420, 250], "student_id": null}]
+    },
+    {
+      "path": "classroom/evaluation-day-3-view-1.jpg",
+      "split": "evaluation",
+      "capture_group": "day-3",
+      "session_id": "lecture-day-3",
+      "conditions": ["dim", "back-row"],
+      "roster": ["STU001"],
+      "faces": [{"bbox": [50, 50, 130, 150], "student_id": "STU001"}, {"bbox": [200, 50, 280, 150], "student_id": null}]
+    }
+  ]
+}

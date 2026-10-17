@@ -1,0 +1,97 @@
+/* Supporting palette adds personality while status colors keep their meaning. */
+:root {
+  --color-forest:#2e7059; --wash-forest:#dfefe5;
+  --color-sky:#366b91; --wash-sky:#e2edf8;
+  --color-plum:#73568f; --wash-plum:#eee5f5;
+  --color-clay:#925539; --wash-clay:#f7e7db;
+  --color-honey:#8a6926; --wash-honey:#f7edcf;
+  --text-primary:#252e2b; --text-secondary:#5c6b64;
+}
+.role-teacher { --accent-primary:#2e7059; --accent-secondary:#2e7059; --accent-gradient:#2e7059; --portal-soft:#dfefe5; --portal-tint:#f1f7f3; }
+.role-student { --accent-primary:#7054a0; --accent-secondary:#7054a0; --accent-gradient:#7054a0; --portal-soft:#eee6f7; --portal-tint:#f6f2fb; }
+.workspace { background:#f5f4f0; }
+.sidebar { background:#fcfbf8; border-color:white; }
+.workspace-label { color:#68756d; }
+.topbar-location strong { font-weight:600; }
+.eyebrow { display:flex; align-items:center; gap:7px; }
+.page-heading .eyebrow::before { content:''; width:6px; height:6px; background:#c98859; border-radius:50%; }
+.page-heading h1 { font-weight:600; }
+.stats-grid > .stat-card:nth-child(4n+1) { --metric-ink:var(--color-forest); --metric-wash:var(--wash-forest); }
+.stats-grid > .stat-card:nth-child(4n+2) { --metric-ink:var(--color-sky); --metric-wash:var(--wash-sky); }
+.stats-grid > .stat-card:nth-child(4n+3) { --metric-ink:var(--color-clay); --metric-wash:var(--wash-clay); }
+.stats-grid > .stat-card:nth-child(4n+4) { --metric-ink:var(--color-plum); --metric-wash:var(--wash-plum); }
+.stats-grid > .stat-card { background:var(--metric-wash); border-color:transparent; position:relative; overflow:hidden; box-shadow:0 3px 10px #283b3005; }
+.stats-grid > .stat-card > span { position:relative; z-index:1; color:var(--metric-ink); font-weight:500; }
+.stats-grid > .stat-card > span svg { background:#ffffffaa; color:var(--metric-ink); border:1px solid #ffffff90; }
+.stats-grid > .stat-card > strong { color:var(--metric-ink); font-weight:600; }
+.stats-grid > .stat-card > small { border-top-color:#ffffffa0; color:#45564d; }
+.stats-grid > .stat-card::after { content:''; position:absolute; width:95px; height:95px; border:16px solid #ffffff35; border-radius:50%; right:-37px; bottom:15px; pointer-events:none; }
+.role-student .student-metrics > .featured-stat { --metric-ink:var(--color-plum); --metric-wash:var(--wash-plum); }
+.role-student .student-metrics > .stat-card:nth-child(2) { --metric-ink:var(--color-forest); --metric-wash:var(--wash-forest); }
+.role-student .student-metrics > .stat-card:nth-child(3) { --metric-ink:var(--color-sky); --metric-wash:var(--wash-sky); }
+.role-student .student-metrics > .stat-card:nth-child(4) { --metric-ink:var(--color-clay); --metric-wash:var(--wash-clay); }
+.dashboard-card { border-color:#e8e7e1; box-shadow:0 4px 16px #364a3605; }
+.dashboard-card-heading h2, .section-heading h2 { color:#2c3731; font-weight:600; }
+.management-insights > .dashboard-card:first-child { background:#fffdf7; }
+.readiness-card { background:#f7f3fc; border-color:#e9e1f0; }
+.readiness-card .dashboard-card-heading > svg { background:var(--wash-plum); color:var(--color-plum); width:34px; height:34px; padding:8px; border-radius:11px; }
+.readiness-ring svg > circle:first-child { stroke:#e7dfef; }
+.readiness-ring svg > circle:last-child { stroke:var(--color-plum); }
+.readiness-ring strong { color:var(--color-plum); }
+.readiness-legend i.ready { background:var(--color-plum); }
+.readiness-legend i.consent { background:#c39840; }
+.readiness-legend i.enrollment { background:#6696b7; }
+.class-population > div:nth-child(3n+1) .soft-icon { color:var(--color-sky); background:var(--wash-sky); }
+.class-population > div:nth-child(3n+2) .soft-icon { color:var(--color-clay); background:var(--wash-clay); }
+.class-population > div:nth-child(3n+3) .soft-icon { color:var(--color-plum); background:var(--wash-plum); }
+.population-track { background:#e9eee7; }
+.population-track > span { background:#71a48a; }
+.quick-action:nth-child(3n+1) { background:#fdf5ed; border-color:#f0e2d3; }
+.quick-action:nth-child(3n+1) .soft-icon { color:var(--color-clay); background:var(--wash-clay); }
+.quick-action:nth-child(3n+2) { background:#f0f5fc; border-color:#dfe9f4; }
+.quick-action:nth-child(3n+2) .soft-icon { color:var(--color-sky); background:var(--wash-sky); }
+.quick-action:nth-child(3n+3) { background:#f5f0fa; border-color:#e9e1f1; }
+.quick-action:nth-child(3n+3) .soft-icon { color:var(--color-plum); background:var(--wash-plum); }
+.quick-action { transition:transform .18s ease, box-shadow .18s ease; }
+.quick-action:hover { box-shadow:0 5px 18px #3447370a; transform:translateY(-2px); }
+.dashboard-list-row:nth-child(3n+1) :is(.subject-initial,.soft-icon) { color:var(--color-sky); background:var(--wash-sky); }
+.dashboard-list-row:nth-child(3n+2) :is(.subject-initial,.soft-icon) { color:var(--color-clay); background:var(--wash-clay); }
+.dashboard-list-row:nth-child(3n+3) :is(.subject-initial,.soft-icon) { color:var(--color-plum); background:var(--wash-plum); }
+.sidebar .nav-item[data-page='accounts'] > svg { color:var(--color-sky); }
+.sidebar .nav-item[data-page='classes'] > svg { color:var(--color-honey); }
+.sidebar .nav-item[data-page='subjects'] > svg { color:var(--color-plum); }
+.sidebar .nav-item[data-page='biometrics'] > svg, .sidebar .nav-item[data-page='biometric'] > svg { color:var(--color-clay); }
+.sidebar .nav-item[data-page='history'] > svg { color:var(--color-sky); }
+.sidebar .nav-item.active > svg { color:var(--accent-primary); }
+.student-insights > .dashboard-card:first-child { background:#fffefd; }
+.student-insights .ring-card { background:#f7f2fc; border-color:#e9e0f3; }
+.chart-legend span:last-child i { background:#c68b5f; }
+.subject-progress:nth-child(3n+1) { --subject-color:var(--color-sky); --subject-wash:var(--wash-sky); }
+.subject-progress:nth-child(3n+2) { --subject-color:var(--color-clay); --subject-wash:var(--wash-clay); }
+.subject-progress:nth-child(3n+3) { --subject-color:var(--color-plum); --subject-wash:var(--wash-plum); }
+.subject-progress { padding:16px; background:var(--subject-wash); border-radius:13px; }
+.subject-progress .progress-track { background:#ffffff95; }
+.subject-progress .progress-track > span { background:var(--subject-color); }
+.subject-progress > div > span { color:var(--subject-color); }
+.subject-progress-grid { gap:12px; }
+.attendance-panel .card.text-center { background:#fffbf4; border-color:#eddfc9; }
+.attendance-panel .attendance-mark { color:var(--color-clay); background:#f7e5d2; box-shadow:0 0 0 7px #fcf1e4; }
+.subject-selector { background:#f0f5fb; border-color:#dfe8f1; }
+.subject-selector .roster-count { background:white; color:var(--color-sky); padding:9px 12px; border-radius:20px; }
+.offline-queue { background:#f3f7fc; border-color:#dfe7f2; }
+.pending-review-heading h2 { color:#7b5a23; }
+.pending-student[open] > summary { background:#faf4e8; }
+.pending-photo:nth-child(3n+1) .pending-photo-heading strong { color:var(--color-forest); }
+.pending-photo:nth-child(3n+2) .pending-photo-heading strong { color:var(--color-clay); }
+.pending-photo:nth-child(3n+3) .pending-photo-heading strong { color:var(--color-plum); }
+.pending-photo:nth-child(3n+1) > img { background:#edf5ef; }
+.pending-photo:nth-child(3n+2) > img { background:#fbf0e7; }
+.pending-photo:nth-child(3n+3) > img { background:#f2edf8; }
+.workspace-chip:nth-child(2) { color:var(--color-sky); background:#f0f5fb; border-color:#e1eaf4; }
+.login-story { background:#f1ebe4; }
+.role-student .login-story { background:#ede6f3; }
+.story-illustration { background:#fffdf9; border-color:#e6dcd0; }
+.illustration-row:nth-child(3) .illustration-avatar { background:var(--wash-sky); color:var(--color-sky); }
+.illustration-row:nth-child(4) .illustration-avatar { background:var(--wash-clay); color:var(--color-clay); }
+.illustration-row:nth-child(5) .illustration-avatar { background:var(--wash-plum); color:var(--color-plum); }
+@media (max-width:680px) { .subject-selector .roster-count { display:inline-flex; } .subject-progress { padding:14px; } }
