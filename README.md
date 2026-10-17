@@ -2,6 +2,8 @@
 
 College attendance management with role-based portals, face recognition, and persistent offline capture.
 
+[User walkthrough](#user-walkthrough) · [Local setup](#run-locally) · [Architecture](docs/architecture-and-offline.md)
+
 Attendly helps teachers capture a classroom, review uncertain matches, and finalize attendance. Students can see their own confirmed records and submit enrollment photos; administrators and class teachers manage the school community.
 
 > **Project status:** working local application with a real FastAPI/SQLite backend. Cloud hosting, managed databases, object storage, campus SSO, and timetable integration are not configured. Recognition accuracy must be evaluated on representative classroom data before operational use.
@@ -110,6 +112,44 @@ Vite proxies `/api/*` and authenticated `/static/*` image requests to FastAPI. T
 | Student | Own confirmed attendance, own profile, biometric consent and submissions |
 
 Class teacher is a responsibility assigned to a teacher, not unrestricted administrative access. Profile pictures use an approved front enrollment photo, or another approved angle if necessary. Pending/rejected photos are excluded; accounts without an available photo use initials.
+
+## User walkthrough
+
+These screenshots show the application UI with **synthetic demo accounts and attendance**. They contain no real student photos or school records. Recognition outcomes in the review screenshot are simulated examples, not measured accuracy results. Your dashboard figures and available navigation depend on your account and data.
+
+### 1. Sign in to your portal
+
+Select **Student** or **Teacher**, then use the credentials provided by your college. Administrators use **Administrator sign in**. Accounts are created by an administrator or an authorized class teacher.
+
+![Teacher sign-in screen with portal selection and username/password fields](docs/images/01-sign-in.jpg)
+
+### 2. Find your workspace
+
+The class teacher overview brings classes, students, teaching assignments, and enrollment readiness together. Use the sidebar for management or the bottom-right **Take attendance** button to start a lecture. Regular teachers see their own teaching dashboard without class-management access.
+
+![Class teacher dashboard with class metrics, enrollment readiness, and the Take attendance action](docs/images/02-teacher-dashboard.jpg)
+
+### 3. Choose how to capture attendance
+
+Open **Take attendance**, select your assigned subject/class, and choose **1–4 periods**. **Single Shot** is the default. Use the arrow beside the capture button for **3-Shot Panorama**, which guides you through left, center, and right captures. Preview the images and retake any unclear view before processing. The isolated screenshot below focuses on the capture controls.
+
+![Capture options showing the four-period limit and Single Shot or 3-Shot Panorama menu](docs/images/03-capture-options.jpg)
+
+Offline captures stay in the encrypted **On this device** queue. Keep the device's site data until synchronization and finalization finish; a local save is not official attendance.
+
+### 4. Review exceptions, then confirm
+
+Confident matches are already marked present. Check students labeled **Needs review**, use **Mark present** or **Mark absent**, and add a note when useful. A missing face alone does not prove absence. Use the bulk absence action only after checking the remaining students. The screenshot shows a review in progress; confirmation stays unavailable until every student has been resolved.
+
+![Attendance review showing one confident match, two students needing review, and manual correction controls](docs/images/04-attendance-review.jpg)
+
+After all decisions are resolved, select **Confirm attendance**. Treat the session as finalized only when the server confirms it; pending/offline reviews remain drafts. You can return through **Session history**.
+
+### 5. Check attendance as a student
+
+Under **My attendance**, students see their own finalized attendance rate, period totals, subject summaries, and class history. Open **Details** for a session, **My biometrics** to submit enrollment photos, or the account menu for **My profile**.
+
+![Student portal with attendance rate, period totals, session count, and attendance charts](docs/images/05-student-portal.jpg)
 
 ## Routes
 
