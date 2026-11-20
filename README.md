@@ -255,3 +255,26 @@ The development launcher is not a production deployment. Hosting requires a prod
 ## Repository contents
 
 Only application source, design assets, synthetic fixtures, and documentation belong in Git. `.gitignore` excludes runtime school data, databases, credentials, dependencies, build output, and downloaded model weights. Keep backups of real attendance and biometric data outside the code repository.
+
+### Student offboarding and attendance history
+
+When a student leaves, remove their account in **People & accounts**. Choose
+**Former students** and then **View record** to see their name, roll number,
+departure date, former class, and the subjects assigned to that class when
+they left. This includes subjects with no attendance sessions. Administrators
+can read all former student records. Class teachers can read records in the
+classes they manage.
+
+Each attendance entry keeps its session, subject, periods, and recorded mark.
+Session history and CSV exports show **No longer enrolled** separately from
+the original present or absent mark. Former students no longer appear on
+current rosters. Their login sessions and enrollment biometrics are removed,
+and their roll numbers stay reserved.
+
+Existing databases migrate on startup. An older archive without a saved
+subject list still shows its recorded attendance. Records deleted before
+archiving was introduced can only be recovered from a backup.
+
+Run the migration and offboarding checks with
+`backend/venv/bin/python backend/test_offboarding.py` and the HTTP tests with
+`backend/venv/bin/python backend/test_access.py`.

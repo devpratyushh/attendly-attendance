@@ -18,6 +18,7 @@ export const api = {
   logout: () => request('/api/auth/logout', { method: 'POST' }),
   changePassword: data => request('/api/auth/password', jsonOptions('POST', data)),
   getAdminOverview: () => request('/api/admin/overview'),
+  getFormerStudentRecord: id => request(`/api/admin/former-students/${id}`),
   createUser: data => request('/api/admin/users', jsonOptions('POST', data)),
   deleteUser: id => request(`/api/admin/users/${id}`, { method: 'DELETE' }),
   resetPassword: (id, password) => request(`/api/admin/users/${id}/password`, jsonOptions('POST', { password })),

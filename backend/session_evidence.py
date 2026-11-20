@@ -21,7 +21,7 @@ def session_roster(db, session):
     assignment = db.get(SubjectAssignment, session.assignment_id)
     if not assignment:
         raise HTTPException(409, "This session has no valid subject assignment")
-    return db.query(Student).filter(Student.class_id == assignment.class_id).order_by(Student.roll_no).all()
+    return db.query(Student).filter(Student.class_id == assignment.class_id, Student.archived_at.is_(None)).order_by(Student.roll_no).all()
 
 
 def review_analysis(db, session):

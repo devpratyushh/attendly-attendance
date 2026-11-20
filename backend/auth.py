@@ -163,7 +163,7 @@ async def authorize(request: Request, db: DBSession = Depends(get_db)):
             student_id = pending.student_id
         if student_id:
             student = db.get(Student, student_id)
-            if not student:
+            if not student or student.archived_at is not None:
                 raise HTTPException(404, "Student not found")
             require_manager(db, student.class_id)
 

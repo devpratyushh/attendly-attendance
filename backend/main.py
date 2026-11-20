@@ -204,7 +204,7 @@ def load_all_embeddings(db: DBSession, force_reload: bool = False) -> dict:
         return _EMBEDDINGS_CACHE
 
     result = {}
-    rows = db.query(FaceEmbedding).all()
+    rows = db.query(FaceEmbedding).join(Student).filter(Student.archived_at.is_(None)).all()
     for row in rows:
         emb = np.frombuffer(row.embedding, dtype=np.float32)
         if row.student_id not in result:
@@ -286,7 +286,7 @@ async def activate_calibration(report: UploadFile = File(...), db: DBSession = D
 @app.get("/api/students")
 async def list_students(class_id: Optional[int] = None, db: DBSession = Depends(get_db)):
     """List all enrolled students."""
-    students = visible_students(db, class_id).order_by(Student.roll_no).all()
+    students = visible_students(db, class_id).filter(Student.archived_at.is_(None)).order_by(Student.roll_no).all()
     result = []
     for s in students:
         photos = [
@@ -604,7 +604,7 @@ async def create_session(
         raise HTTPException(403, "You can only take attendance for your assigned subjects")
     if not 1 <= periods <= 4:
         raise HTTPException(400, "Periods must be between 1 and 4")
-    if not db.query(Student).filter(Student.class_id == assignment.class_id).count():
+    if not db.query(Student).filter(Student.class_id == assignment.class_id, Student.archived_at.is_(None)).count():
         raise HTTPException(400, "Add students to this class before taking attendance")
     if client_request_id:
         try:
@@ -914,6 +914,7 @@ async def get_session_detail(session_id: str, db: DBSession = Depends(get_db)):
             "student_id": rec.student_id,
             "roll_no": student.roll_no if student else "",
             "name": student.name if student else "",
+            "no_longer_enrolled": bool(student and student.archived_at),
             "status": rec.status,
             "method": rec.method,
             "confidence": rec.confidence,
@@ -964,9 +965,12 @@ async def export_session_attendance(session_id: str, db: DBSession = Depends(get
     writer = csv.writer(output)
     writer.writerow([
         "Roll No", "Student Name", "Status", "Method", "Confidence",
-        "Manual Reason", "Session ID", "Date", "Subject", "Periods"
+        "Manual Reason", "Session ID", "Date", "Subject", "Periods",
+        "Subject Code", "Class", "Current Enrollment"
     ])
 
+    subject = db.get(SubjectAssignment, session.assignment_id) if session.assignment_id else None
+    classroom = db.get(Classroom, subject.class_id) if subject else None
     for rec in records:
         st = all_students.get(rec.student_id)
         writer.writerow([
@@ -978,8 +982,11 @@ async def export_session_attendance(session_id: str, db: DBSession = Depends(get
             rec.manual_reason or "",
             session.session_id,
             session.date.strftime("%Y-%m-%d %H:%M"),
-            db.get(SubjectAssignment, session.assignment_id).subject_name if session.assignment_id else "",
+            subject.subject_name if subject else "",
             session.periods,
+            subject.subject_code if subject else "",
+            st.recorded_class_name(classroom) if st else "",
+            ("No longer enrolled" if st.archived_at else "Enrolled") if st else "",
         ])
 
     csv_data = output.getvalue()
@@ -1317,7 +1324,7 @@ async def get_overview_stats(db: DBSession = Depends(get_db)):
     """Overall attendance stats for teacher dashboard."""
     sessions = visible_sessions(db).filter(SessionModel.status == "confirmed").all()
     return {
-        "total_students": visible_students(db).count(),
+        "total_students": visible_students(db).filter(Student.archived_at.is_(None)).count(),
         "total_sessions": len(sessions),
         "total_periods": sum(s.periods for s in sessions),
     }

@@ -97,6 +97,7 @@ export default function SessionHistory({ onResume, sessionId, onSelectSession, o
                   <div>
                     <div className="student-name">{s.name}</div>
                     <div className="student-roll">{s.roll_no}</div>
+                    {s.no_longer_enrolled && <span className="badge neutral">No longer enrolled</span>}
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="badge badge-present">
@@ -146,6 +147,7 @@ export default function SessionHistory({ onResume, sessionId, onSelectSession, o
                 <div className="student-info">
                   <div className="student-name">{s.name}</div>
                   <div className="student-roll">{s.roll_no}</div>
+                    {s.no_longer_enrolled && <span className="badge neutral">No longer enrolled</span>}
                 </div>
               </div>
             ))}

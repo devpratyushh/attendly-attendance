@@ -1,13 +1,14 @@
 """Account provisioning, class teacher appointments, and teaching assignments."""
 import shutil
 from pathlib import Path
+from datetime import timezone
 from typing import Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session as DBSession
 from sqlalchemy import func, case
 from models import (get_db, User, Student, Classroom, SubjectAssignment, LoginSession,
-                    Session as AttendanceSession, BiometricLog, AttendanceRecord)
+                    Session as AttendanceSession, BiometricLog, AttendanceRecord, utc_now)
 from auth import hash_password, managed_classes, require_manager, visible_class_ids, user_data
 from settings import PHOTOS_DIR, PENDING_DIR
 
@@ -41,7 +42,10 @@ def overview(db: DBSession = Depends(get_db)):
     users = db.query(User).filter(User.role != "admin")
     if user.role != "admin":
         users = users.filter(User.student_id.in_(db.query(Student.id).filter(Student.class_id.in_(class_ids))))
-    students = db.query(Student).filter(Student.class_id.in_(class_ids)).all()
+    students = db.query(Student).filter(Student.class_id.in_(class_ids), Student.archived_at.is_(None)).all()
+    former_students = db.query(Student).filter(Student.archived_at.is_not(None))
+    if user.role != "admin":
+        former_students = former_students.filter(Student.class_id.in_(class_ids))
     student_map = {s.id: s for s in students}
     assignments = db.query(SubjectAssignment).filter(SubjectAssignment.class_id.in_(class_ids)).all()
     attendance = (db.query(SubjectAssignment.class_id, AttendanceSession.date, AttendanceSession.periods,
@@ -53,6 +57,12 @@ def overview(db: DBSession = Depends(get_db)):
                   .group_by(SubjectAssignment.class_id, AttendanceSession.id)
                   .order_by(AttendanceSession.date).all())
     return {
+        "former_students": [
+            {"id": s.id, "name": s.name, "roll_no": s.roll_no, "class_id": s.class_id,
+             "class_name": (s.enrollment_at_departure or {}).get("class_name"),
+             "archived_at": s.archived_at.replace(tzinfo=timezone.utc).isoformat()}
+            for s in former_students.order_by(Student.name, Student.roll_no)
+        ],
         "class_attendance": [{"class_id": cid, "date": date.isoformat(),
                               "total": count * periods, "attended": int(present or 0) * periods}
                              for cid, date, periods, count, present in attendance],
@@ -64,6 +74,33 @@ def overview(db: DBSession = Depends(get_db)):
                        roll_no=student_map[u.student_id].roll_no if u.student_id in student_map else None)
                   for u in users.order_by(User.name).all()],
         "assignments": [assignment_data(db, a) for a in assignments],
+    }
+
+
+@router.get("/former-students/{student_id}")
+def former_student_record(student_id: int, db: DBSession = Depends(get_db)):
+    student = db.get(Student, student_id)
+    if not student or student.archived_at is None:
+        raise HTTPException(404, "Former student not found")
+    require_manager(db, student.class_id)
+    records = (db.query(AttendanceRecord, AttendanceSession, SubjectAssignment, Classroom)
+               .join(AttendanceSession, AttendanceSession.id == AttendanceRecord.session_id)
+               .outerjoin(SubjectAssignment, SubjectAssignment.id == AttendanceSession.assignment_id)
+               .outerjoin(Classroom, Classroom.id == SubjectAssignment.class_id)
+               .filter(AttendanceRecord.student_id == student.id))
+    if db.info["user"].role != "admin":
+        records = records.filter(Classroom.id.in_(managed_classes(db, db.info["user"])))
+    return {
+        "enrollment_at_departure": student.enrollment_at_departure,
+        "attendance": [
+            {"session_id": session.session_id, "date": session.date.replace(tzinfo=timezone.utc).isoformat(),
+             "subject_name": subject.subject_name if subject else None,
+             "subject_code": subject.subject_code if subject else None,
+             "class_name": student.recorded_class_name(classroom),
+             "periods": session.periods, "status": record.status, "method": record.method,
+             "manual_reason": record.manual_reason}
+            for record, session, subject, classroom in records.order_by(AttendanceSession.date.desc(), AttendanceSession.id.desc())
+        ],
     }
 
 
@@ -117,9 +154,21 @@ def remove_user(user_id: int, db: DBSession = Depends(get_db)):
     db.query(AttendanceSession).filter(AttendanceSession.created_by == user.id).update({"created_by": None})
     db.delete(user)
     if student:
-        db.query(BiometricLog).filter(BiometricLog.student_id == student.id).delete()
-        db.flush()
-        db.delete(student)
+        # Keep the identity and attendance links for historical reports.
+        student.archived_at = utc_now()
+        classroom = db.get(Classroom, student.class_id) if student.class_id else None
+        subjects = db.query(SubjectAssignment).filter_by(class_id=student.class_id).order_by(SubjectAssignment.subject_code)
+        student.enrollment_at_departure = {
+            "class_name": classroom.name if classroom else None,
+            "subjects": [{"name": subject.subject_name, "code": subject.subject_code} for subject in subjects],
+        }
+        student.consent_given = False
+        student.embeddings.clear()
+        student.photos.clear()
+        student.pending_updates.clear()
+        db.add(BiometricLog(student_id=student.id, action="archive",
+                            detail="Account removed; attendance history preserved",
+                            performed_by=db.info["user"].username))
     db.commit()
     if student:
         for root in (PHOTOS_DIR, PENDING_DIR):
