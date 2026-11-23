@@ -399,6 +399,63 @@ class SchoolAccessTests(unittest.TestCase):
             db.execute('UPDATE students SET consent_given=0 WHERE id=?', (self.student_a['student_id'],))
         self.assertIsNone(self.req(self.student, 'get', '/api/auth/me')['profile_photo_url'])
 
+    def test_14_former_student_academic_record(self):
+        import csv
+        import io
+
+        classroom = self.req(self.admin, 'post', '/api/admin/classes', expected=201,
+                             json={'name': 'Final year', 'class_teacher_id': self.lead['id']})['id']
+        student = self.create_account('graduate', 'Former Student', 'student', classroom, 'F001')
+        graduate = self.login('graduate', 'SchoolPass123!', 'student')
+        def add_subject(name, code):
+            return self.req(self.admin, 'post', '/api/admin/assignments', expected=201, json={
+                'class_id': classroom, 'teacher_id': self.regular['id'], 'subject_name': name, 'subject_code': code})
+        math = add_subject('Math', 'M10')
+        art = add_subject('Art', 'A10')
+        history = {}
+        for status in ('present', 'absent'):
+            session = self.req(self.teacher, 'post', '/api/sessions/create',
+                               data={'assignment_id': math['id'], 'periods': 2})['session_id']
+            self.req(self.teacher, 'post', f'/api/sessions/{session}/confirm', data={'records': json.dumps([
+                {'student_id': student['student_id'], 'status': status, 'method': 'manual', 'manual_reason': 'Roll call'}])})
+            history[session] = status
+
+        self.req(self.lead_client, 'delete', f"/api/admin/users/{student['id']}")
+        self.req(graduate, 'get', '/api/auth/me', expected=401)
+        self.assertEqual(self.req(self.admin, 'get', f'/api/students?class_id={classroom}'), [])
+        self.req(self.admin, 'delete', f"/api/admin/assignments/{art['id']}")
+        add_subject('Added later', 'NEW')
+        self.req(self.admin, 'put', f'/api/admin/classes/{classroom}', json={
+            'name': 'Renamed class', 'class_teacher_id': self.lead['id']})
+        overview = self.req(self.lead_client, 'get', '/api/admin/overview')
+        former = next(s for s in overview['former_students'] if s['id'] == student['student_id'])
+        self.assertEqual((former['roll_no'], former['class_name']), ('F001', 'Final year'))
+        self.assertEqual(next(c for c in overview['classes'] if c['id'] == classroom)['student_count'], 0)
+        record_url = f"/api/admin/former-students/{student['student_id']}"
+        self.req(self.teacher, 'get', record_url, expected=403)
+        # A manager of another class can open the archive, but cannot see this student's record.
+        other_manager = self.create_account('other.manager', 'Other Manager', 'teacher')
+        self.req(self.admin, 'post', '/api/admin/classes', expected=201, json={
+            'name': 'Separate class', 'class_teacher_id': other_manager['id']})
+        other_client = self.login('other.manager', 'SchoolPass123!', 'teacher')
+        other_overview = self.req(other_client, 'get', '/api/admin/overview')
+        self.assertNotIn(student['student_id'], [s['id'] for s in other_overview['former_students']])
+        self.req(other_client, 'get', record_url, expected=403)
+        record = self.req(self.lead_client, 'get', record_url)
+        self.assertEqual(record['enrollment_at_departure'], {'class_name': 'Final year', 'subjects': [
+            {'name': 'Art', 'code': 'A10'}, {'name': 'Math', 'code': 'M10'}]})
+        self.assertEqual({r['session_id']: r['status'] for r in record['attendance']}, history)
+        for row in record['attendance']:
+            self.assertEqual(row['class_name'], 'Final year')
+            self.assertEqual((row['subject_code'], row['periods'], row['manual_reason']), ('M10', 2, 'Roll call'))
+            url = f"/api/sessions/{row['session_id']}"
+            result = self.req(self.teacher, 'get', url)['students'][0]
+            self.assertTrue(result['no_longer_enrolled'])
+            exported, = csv.DictReader(io.StringIO(self.req(self.teacher, 'get', url + '/export')))
+            self.assertEqual(exported['Class'], 'Final year')
+            self.assertEqual((exported['Current Enrollment'], exported['Status'], exported['Subject Code']),
+                             ('No longer enrolled', row['status'], 'M10'))
+
     def test_11_retention_preserves_unfinished_sessions(self):
         import sys
         from datetime import datetime, timedelta

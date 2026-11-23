@@ -4,7 +4,7 @@ Single-class design: one subject, one teacher, all local.
 """
 from sqlalchemy import (
     create_engine, Column, Integer, String, Float, Text, DateTime, Boolean,
-    ForeignKey, LargeBinary, inspect, text
+    ForeignKey, LargeBinary, JSON, inspect, text
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from datetime import datetime, timezone
@@ -32,11 +32,20 @@ class Student(Base):
     consent_given = Column(Boolean, default=False)
     class_id = Column(Integer, ForeignKey("classrooms.id"), nullable=True, index=True)
     created_at = Column(DateTime, default=utc_now)
+    archived_at = Column(DateTime, nullable=True)
+    enrollment_at_departure = Column(JSON, nullable=True)
 
     photos = relationship("EnrolledPhoto", back_populates="student", cascade="all, delete-orphan")
     embeddings = relationship("FaceEmbedding", back_populates="student", cascade="all, delete-orphan")
-    attendance_records = relationship("AttendanceRecord", back_populates="student", cascade="all, delete-orphan")
+    attendance_records = relationship("AttendanceRecord", back_populates="student")
     pending_updates = relationship("PendingBiometric", back_populates="student", cascade="all, delete-orphan")
+
+    def recorded_class_name(self, classroom):
+        if classroom is None:
+            return None
+        if self.enrollment_at_departure and classroom.id == self.class_id:
+            return self.enrollment_at_departure.get("class_name") or classroom.name
+        return classroom.name
 
 
 class EnrolledPhoto(Base):
@@ -196,7 +205,8 @@ def init_db():
     Base.metadata.create_all(bind=engine)
     # Add the new scope columns without discarding an existing database.
     additions = {
-        "students": {"class_id": "INTEGER REFERENCES classrooms(id)"},
+        "students": {"class_id": "INTEGER REFERENCES classrooms(id)", "archived_at": "DATETIME",
+                     "enrollment_at_departure": "JSON"},
         "sessions": {
             "assignment_id": "INTEGER REFERENCES subject_assignments(id)",
             "created_by": "INTEGER REFERENCES users(id)",
