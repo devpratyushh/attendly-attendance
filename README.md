@@ -33,6 +33,64 @@ Attendly helps teachers capture a classroom, review uncertain matches, and final
 | Device storage | IndexedDB, WebCrypto AES-GCM, service worker |
 | Authentication | Revocable HttpOnly cookie sessions; salted password hashes |
 
+## Architecture at a glance
+
+### Current architecture and offline-first workflow
+
+The browser safely preserves unfinished captures, while the FastAPI backend performs recognition and commits official attendance. Saving a photo offline is **not** the same as confirming attendance.
+
+```mermaid
+flowchart TB
+    subgraph Browser["Teacher browser / PWA"]
+        UI["React interface and camera"]
+        IDB[("IndexedDB: encrypted frames, jobs and drafts")]
+        SW["Service worker: offline shell and best-effort sync"]
+        UI -->|"Save capture first"| IDB
+        SW <--> IDB
+    end
+    subgraph Server["Current FastAPI application"]
+        API["FastAPI: auth, attendance API and review"]
+        ML["InsightFace + ONNX CPU: recognition"]
+        DB[("SQLite: authoritative records")]
+        Media[("Private files: enrollment and classroom images")]
+        API <--> ML
+        API <--> DB
+        API <--> Media
+    end
+    UI <-->|"API requests and responses"| API
+    SW -->|"Retry when supported"| API
+```
+
+1. A previously verified teacher takes a Single Shot or 3-Shot Panorama capture. Images are compressed, AES-GCM encrypted, and committed to IndexedDB before being reported as saved.
+2. When online, the sync engine authenticates the teacher, creates or recovers a session using a stable request ID, uploads each image idempotently, and retrieves recognition evidence.
+3. The teacher resolves uncertain students. FastAPI validates the complete register and commits the session. Local frames are removed **only after** the server confirms finalization and provides matching processing receipts.
+
+The service worker caches the application shell, not private API responses or biometric images. Background Sync is browser-dependent, so reopening the app and foreground retries are important. **Recognition and finalization still require the server.**
+
+### Proposed production deployment (not currently implemented)
+
+For a college pilot, start with one maintainable application and a bounded CPU inference worker; introduce managed services as load grows. The diagram below is a target design, **not** a claim that these services are already deployed.
+
+```mermaid
+flowchart TB
+    Clients["Faculty and student browsers / installed PWA"]
+    Proxy["HTTPS reverse proxy: TLS, React build and /api routing"]
+    API["FastAPI: authentication and attendance"]
+    PG[("PostgreSQL: accounts, attendance and jobs")]
+    Storage[("Private object storage: temporary photos")]
+    Worker["Recognition worker: InsightFace / ONNX CPU"]
+    Clients <--> Proxy
+    Proxy <--> API
+    API <--> PG
+    API <--> Storage
+    Worker <-->|"Claim jobs and save results"| PG
+    Worker <--> Storage
+```
+
+An initial pilot can colocate the API, database, and one recognition worker on a VM with persistent storage and backups. At larger scale, move to managed PostgreSQL and private S3-compatible storage. The existing code uses **SQLite, local files, and synchronous recognition**; deployment requires database migrations, durable worker jobs, a media-storage abstraction, TLS, secrets management, security hardening, backups, and real-classroom accuracy and resource testing. Burstable shared-CPU VMs can work for light intermittent testing but should not be assumed to provide sustained inference throughput.
+
+See [architecture, offline workflow, and deployment notes](docs/architecture-and-offline.md) for details and limitations.
+
 ## Run locally
 
 ### Prerequisites
