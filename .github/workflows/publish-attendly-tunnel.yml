@@ -1,0 +1,37 @@
+name: Publish Attendly tunnel images
+
+on:
+  push:
+    branches:
+      - attendly-tunnel-publish-20261125
+    paths:
+      - .github/workflows/publish-attendly-tunnel.yml
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download verified release bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download attendly-tunnel-lab-20261125 \
+            --repo "$GITHUB_REPOSITORY" --pattern attendly-tunnel-amd64.zip
+          unzip -q attendly-tunnel-amd64.zip
+          docker image load -i attendly-tunnel-amd64/images.tar.gz
+
+      - name: Push x64 images to the GitHub Container Registry
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          registry="ghcr.io/${GITHUB_REPOSITORY,,}"
+          for service in api web cloudflared; do
+            target="$registry/$service:tunnel-amd64-20261125"
+            docker tag "attendly-local/$service:tunnel-amd64" "$target"
+            docker push "$target"
+          done
